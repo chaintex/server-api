@@ -1,0 +1,30 @@
+sudo: required
+
+go_import_path: github.com/chaintex/server-api
+
+language: go
+
+go:
+  - "1.10.x"
+
+services:
+  - docker
+
+install:
+  - go test -v ./...
+
+after_success:
+  - docker --version
+  - docker build -f Dockerfile.next -t chaintexnetwork/server-api:$TRAVIS_COMMIT .
+
+deploy:
+  - provider: script
+    script: bash .travis/docker_push
+    on:
+      all_branches: true
+
+  - provider: script
+    script: bash .travis/awx_job_launch $TRAVIS_BRANCH
+    on:
+      all_branches: true
+      condition: $TRAVIS_BRANCH =~ ^develop|master$

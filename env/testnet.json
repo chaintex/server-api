@@ -1,0 +1,50 @@
+{
+  "connections":[
+    {
+        "endPoint": "https://scan.testnet.tomochain.com",
+        "api_key": "D8YAEQ3V4THAPDA9YSB1YGA1QY9KAMHY6M",
+        "type": "tomoscan"
+    },
+    {
+      "endPoint" : "https://testnet.tomochain.com",
+      "type": "node"
+    }
+  ],
+  "api_usd":"https://api.coinmarketcap.com",
+  "coin_market": ["cmc", "coingecko"],
+  "network": "0xf6e6ffd3f34b759e30a5357ce749d204aaf5446e",
+  "trade_topic":"0x314089036943f0e5ddddd6939d359902c01dac1be72c517cc8342fca023ad71e",
+  "endpoint": "wss://testnet.tomochain.com/ws",
+  "averageBlockTime": 15000,
+  "gasstation_endpoint": "https://ethgasstation.info/json/ethgasAPI.json",
+  "api_endpoint":"https://api.coinmarketcap.com",
+  "config_endpoint": "http://192.168.2.41:3002/currencies",
+
+  "can_delete": ["BBO", "COFI", "BITX", "MOC", "MAS"],
+
+  "tokens": [
+    {
+      "name": "TomoChain",
+      "symbol": "TOMO",
+      "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "decimals": 18,
+      "cmc_id": "1027",
+      "cg_id": "tomochain"
+    },
+    {
+      "name": "ChainTEX Token",
+      "symbol": "CTT",
+      "address": "0x06cca536f531ac3426077ca39b629d901c5cf272",
+      "decimals": 18,
+      "cg_id": "ctt"
+    },
+    {
+      "name": "TriipMiles",
+      "symbol": "TIIM",
+      "address": "0x095d85e62cb6ad354ff900c1d530a7c4b8e247b5",
+      "decimals": 18,
+      "cmc_id": "1982",
+      "cg_id": "tiim"
+    }
+  ]
+}
