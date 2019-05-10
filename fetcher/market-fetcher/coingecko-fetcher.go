@@ -39,6 +39,7 @@ func (cGFetcher *CGFetcher) GetRateUsdTomo() (string, error) {
 	return rateString, nil
 }
 
+//GetGeneralInfo func
 func (cGFetcher *CGFetcher) GetGeneralInfo(coinID string) (*tomochain.TokenGeneralInfo, error) {
 	url := fmt.Sprintf("%s/coins/%s?tickers=false&community_data=false&developer_data=false&sparkline=false", cGFetcher.API, coinID)
 
@@ -54,8 +55,6 @@ func (cGFetcher *CGFetcher) GetGeneralInfo(coinID string) (*tomochain.TokenGener
 		log.Print(err)
 		return nil, err
 	}
-
-	log.Print("======================GetGeneralInfo", coinID, tokenItem)
 
 	tokenGenalInfo := tokenItem.ToTokenInfoCMC()
 	return &tokenGenalInfo, nil

@@ -18,7 +18,7 @@
   "averageBlockTime": 15000,
   "gasstation_endpoint": "https://ethgasstation.info/json/ethgasAPI.json",
   "api_endpoint":"https://api.coinmarketcap.com",
-  "config_endpoint": "http://192.168.2.41:3002/currencies",
+  "config_endpoint": "http://192.168.2.40:3002/currencies",
 
   "can_delete": ["BBO", "COFI", "BITX", "MOC", "MAS"],
 

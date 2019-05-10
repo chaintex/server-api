@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime"
 	"time"
+	"strconv"
+	"math/big"
 
 	"github.com/chaintex/server-api/common"
 	"github.com/chaintex/server-api/fetcher"
@@ -14,7 +16,7 @@ import (
 	"github.com/chaintex/server-api/tomochain"
 )
 
-type fetcherFunc func(persister persister.Persister, boltIns persister.BoltInterface, fetcher *fetcher.Fetcher)
+type fetcherFunc func(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher)
 
 func enableLogToFile() (*os.File, error) {
 	const logFileName = "log/error.log"
@@ -49,10 +51,14 @@ func main() {
 	chainTexENV := os.Getenv("CHAINTEX_ENV")
 	persisterIns, _ := persister.NewPersister("ram")
 	boltIns, err := persister.NewBoltStorage()
-	// boltIns, err := persister.NewInfluxStorage()
 	if err != nil {
 		log.Println("cannot init db: ", err.Error())
 	}
+	influxIns, err := persister.NewInfluxDb()
+	if err != nil {
+		log.Println("cannot init influx db: ", err.Error())
+	}
+
 	fertcherIns, err := fetcher.NewFetcher(chainTexENV)
 	if err != nil {
 		log.Fatal(err)
@@ -109,31 +115,31 @@ func main() {
 	}
 	intervalFetchGeneralInfoTokens := time.Duration((tokenNum * 7) + bonusTimeWait)
 
-	runFetchData(persisterIns, boltIns, fetchRateUSD, fertcherIns, 300) //5 minutes
+	runFetchData(persisterIns, boltIns, influxIns, fetchRateUSD, fertcherIns, 60) //5 minutes
 
-	runFetchData(persisterIns, boltIns, fetchGeneralInfoTokens, fertcherIns, intervalFetchGeneralInfoTokens)
+	runFetchData(persisterIns, boltIns, influxIns, fetchGeneralInfoTokens, fertcherIns, intervalFetchGeneralInfoTokens)
 
-	runFetchData(persisterIns, boltIns, fetchRate7dData, fertcherIns, 300) //5 minutes
+	runFetchData(persisterIns, boltIns, influxIns, fetchRate7dData, fertcherIns, 300) //5 minutes
 
-	runFetchData(persisterIns, boltIns, fetchRate, fertcherIns, 15) //15 seconds
-	runFetchData(persisterIns, boltIns, fetchRateWithFallback, fertcherIns, 300)
+	runFetchData(persisterIns, boltIns, influxIns, fetchRate, fertcherIns, 15) //15 seconds
+	runFetchData(persisterIns, boltIns, influxIns, fetchRateWithFallback, fertcherIns, 300)
 	//run server
 	server := http.NewHTTPServer(":3001", persisterIns, fertcherIns)
 	server.Run(chainTexENV)
 
 }
 
-func runFetchData(persister persister.Persister, boltIns persister.BoltInterface, fn fetcherFunc, fertcherIns *fetcher.Fetcher, interval time.Duration) {
+func runFetchData(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fn fetcherFunc, fertcherIns *fetcher.Fetcher, interval time.Duration) {
 	ticker := time.NewTicker(interval * time.Second)
 	go func() {
 		for {
-			fn(persister, boltIns, fertcherIns)
+			fn(persister, boltIns, influxIns, fertcherIns)
 			<-ticker.C
 		}
 	}()
 }
 
-func fetchRateUSD(persister persister.Persister, boltIns persister.BoltInterface, fetcher *fetcher.Fetcher) {
+func fetchRateUSD(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
 	rateUSD, err := fetcher.GetRateUsdTomo()
 	if err != nil {
 		log.Print(err)
@@ -145,24 +151,18 @@ func fetchRateUSD(persister persister.Persister, boltIns persister.BoltInterface
 		persister.SetNewRateUSD(false)
 		return
 	}
-
+	
 	err = persister.SaveRateUSD(rateUSD)
 	if err != nil {
 		log.Print(err)
 		persister.SetNewRateUSD(false)
 		return
 	}
+
+	saveRateUSD(persister, influxIns, rateUSD)
 }
 
-func makeMapRate(rates []tomochain.Rate) map[string]tomochain.Rate {
-	mapRate := make(map[string]tomochain.Rate)
-	for _, r := range rates {
-		mapRate[fmt.Sprintf("%s_%s", r.Source, r.Dest)] = r
-	}
-	return mapRate
-}
-
-func fetchGeneralInfoTokens(persister persister.Persister, boltIns persister.BoltInterface, fetcher *fetcher.Fetcher) {
+func fetchGeneralInfoTokens(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
 	generalInfo := fetcher.GetGeneralInfoTokens()
 	persister.SaveGeneralInfoTokens(generalInfo)
 	err := boltIns.StoreGeneralInfo(generalInfo)
@@ -171,10 +171,9 @@ func fetchGeneralInfoTokens(persister persister.Persister, boltIns persister.Bol
 	}
 }
 
-func fetchRate7dData(persister persister.Persister, boltIns persister.BoltInterface, fetcher *fetcher.Fetcher) {
+func fetchRate7dData(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
 	data, err := fetcher.FetchRate7dData()
 	if err != nil {
-		log.Print(err)
 		if !persister.IsFailedToFetchTracker() {
 			return
 		}
@@ -189,11 +188,11 @@ func fetchRate7dData(persister persister.Persister, boltIns persister.BoltInterf
 		currentGeneral = make(map[string]*tomochain.TokenGeneralInfo)
 	}
 	persister.SaveMarketData(data, currentGeneral, mapToken)
-	// persister.SetIsNewMarketInfo(true)
 }
 
-func fetchRate(persister persister.Persister, boltIns persister.BoltInterface, fetcher *fetcher.Fetcher) {
+func fetchRate(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
 	timeNow := time.Now().UTC().Unix()
+	log.Println("+++++++++++++++++++++start****************************", timeNow)
 	var result []tomochain.Rate
 	currentRate := persister.GetRate()
 	tokenPriority := fetcher.GetListTokenPriority()
@@ -219,11 +218,13 @@ func fetchRate(persister persister.Persister, boltIns persister.BoltInterface, f
 			result = append(result, nr)
 		}
 	}
+
+
 	persister.SaveRate(result, timeNow)
 	persister.SetIsNewRate(true)
 }
 
-func fetchRateWithFallback(persister persister.Persister, boltIns persister.BoltInterface, fetcher *fetcher.Fetcher) {
+func fetchRateWithFallback(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
 	var result []tomochain.Rate
 	currentRate := persister.GetRate()
 	listToken := fetcher.GetListToken()
@@ -258,4 +259,74 @@ func fetchRateWithFallback(persister persister.Persister, boltIns persister.Bolt
 		}
 	}
 	persister.SaveRate(result, 0)
+}
+
+func saveRateUSD(persister persister.Persister, influxIns persister.InfluxInterface, rateUSD string) {
+	var rates []tomochain.RateUSD
+
+	rateRatios := persister.GetRate()
+	rateFloat, err := strconv.ParseFloat(rateUSD, 64)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	for _, r := range rateRatios {
+		if r.Source == common.TOMOSymbol {
+			var rateUSDItem tomochain.RateUSD
+
+			if r.Dest == common.TOMOSymbol {
+				rateUSDItem = tomochain.RateUSD{
+					Symbol:  	r.Dest,
+					PriceUsd:   rateUSD,
+				}
+			} else {
+				var rateRatio float64
+				rateRatio, err = strconv.ParseFloat(r.Rate, 64)
+				if err != nil {
+					log.Print(err)
+					continue
+				}
+	
+				priceUsd := getPriceToken(rateFloat, rateRatio)
+				
+				rateUSDItem = tomochain.RateUSD{
+					Symbol:  	r.Dest,
+					PriceUsd:   priceUsd,
+				}
+			}
+			
+			rates = append(rates, rateUSDItem)
+		}
+	}
+
+	influxIns.StoreRateInfo(rates)
+
+	var symbols []string
+	symbols = append(symbols, "CTT")
+	symbols = append(symbols, "TOMO")
+	influxIns.GetRate24H(symbols)
+}
+
+func makeMapRate(rates []tomochain.Rate) map[string]tomochain.Rate {
+	mapRate := make(map[string]tomochain.Rate)
+	for _, r := range rates {
+		mapRate[fmt.Sprintf("%s_%s", r.Source, r.Dest)] = r
+	}
+	return mapRate
+}
+
+func getPriceToken(priceTomoUsd float64, ratioToken float64) string {
+	i, e := big.NewInt(10), big.NewInt(18)
+	i.Exp(i, e, nil)
+	weight := new(big.Float).SetInt(i)
+
+	ratioTokenFloat := big.NewFloat(ratioToken)
+	priceUSDFloat := big.NewFloat(priceTomoUsd)
+
+	ratio := big.NewFloat(0).Quo(ratioTokenFloat, weight)
+
+	priceOfToken := big.NewFloat(0).Quo(priceUSDFloat, ratio)
+
+	return priceOfToken.String()
 }

@@ -6,7 +6,7 @@ services:
       - 3000:3000
     volumes:
       - "./db/grafana:/var/lib/grafana"
-    restart: always
+    # restart: always
   influx-db:
     build:
       context: .
@@ -15,10 +15,9 @@ services:
       - env_testnet.env
     volumes:
       - "./db/influxdb:/var/lib/influxdb"
-      # - "./influxdb.conf:/etc/influxdb/influxdb.conf:ro"
     ports:
       - "8086:8086"
-    # restart: always
+    restart: always
   cached:
     build: ./
     env_file:

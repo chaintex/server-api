@@ -431,6 +431,8 @@ func (rPersister *RamPersister) GetLast7D(listTokens string) map[string][]float6
 }
 
 func (rPersister *RamPersister) SaveMarketData(marketRate map[string]*tomochain.Rates, mapTokenInfo map[string]*tomochain.TokenGeneralInfo, tokens map[string]tomochain.Token) {
+	log.Print("+++++++++++++++++++++++++", marketRate)
+	log.Print("+++++++++++++++++++++++++", mapTokenInfo)
 	lastSevenDays := map[string][]float64{}
 	newResult := map[string]*tomochain.RightMarketInfo{}
 	if len(mapTokenInfo) == 0 {

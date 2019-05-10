@@ -82,7 +82,7 @@ type TokenGeneralInfo struct {
 	MaxSupply         float64            `json:"max_supply"`
 	MarketCap         float64            `json:"market_cap"`
 	Quotes            map[string]QuoInfo `json:"quotes`
-	Change24H         string             `json:"change_24h"`
+	Change24H         float64            `json:"change_24h"`
 }
 
 type CurrencyData struct {
@@ -94,7 +94,7 @@ type TokenInfoCoinGecko struct {
 	MarketData struct {
 		MarketCap CurrencyData `json:"market_cap"`
 		Volume24H CurrencyData `json:"total_volume"`
-		Change24H string       `json:"price_change_percentage_24h"`
+		Change24H float64      `json:"price_change_percentage_24h"`
 	} `json:"market_data"`
 }
 
@@ -174,7 +174,7 @@ type MarketInfo struct {
 
 type RightMarketInfo struct {
 	Rate      *float64           `json:"rate"`
-	Change24H string             `json:"change_24h"`
+	Change24H float64            `json:"change_24h"`
 	Quotes    map[string]QuoInfo `json:"quotes"`
 }
 
