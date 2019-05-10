@@ -1,4 +1,4 @@
-# Cached server for ChainTeX wallet
+# Cached server for ChainTeX
 
 ## Build
 
