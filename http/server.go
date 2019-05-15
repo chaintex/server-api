@@ -126,6 +126,16 @@ func (httpServer *HTTPServer) GetLast7D(c *gin.Context) {
 	)
 }
 
+//GetLast24H func
+func (httpServer *HTTPServer) GetLast24H(c *gin.Context) {
+	listTokens := c.Query("listToken")
+	data := httpServer.persister.GetLast24H(listTokens)
+	c.JSON(
+		http.StatusOK,
+		gin.H{"success": true, "data": data, "status": "old"},
+	)
+}
+
 //getCacheVersion func
 func (httpServer *HTTPServer) getCacheVersion(c *gin.Context) {
 	timeRun := httpServer.persister.GetTimeVersion()
@@ -145,6 +155,9 @@ func (httpServer *HTTPServer) Run(chainTexENV string) {
 
 	httpServer.r.GET("/getLast7D", httpServer.GetLast7D)
 	httpServer.r.GET("/last7D", httpServer.GetLast7D)
+
+	httpServer.r.GET("/getLast24H", httpServer.GetLast24H)
+	httpServer.r.GET("/last24H", httpServer.GetLast24H)
 
 	httpServer.r.GET("/getRightMarketInfo", httpServer.GetRightMarketInfo)
 	httpServer.r.GET("/marketInfo", httpServer.GetRightMarketInfo)

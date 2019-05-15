@@ -115,13 +115,12 @@ func main() {
 	}
 	intervalFetchGeneralInfoTokens := time.Duration((tokenNum * 7) + bonusTimeWait)
 
-	runFetchData(persisterIns, boltIns, influxIns, fetchRateUSD, fertcherIns, 60) //5 minutes
+	runFetchData(persisterIns, boltIns, influxIns, fetchRateUSD, fertcherIns, 300) //5 minutes
 
 	runFetchData(persisterIns, boltIns, influxIns, fetchGeneralInfoTokens, fertcherIns, intervalFetchGeneralInfoTokens)
 
-	runFetchData(persisterIns, boltIns, influxIns, fetchRate7dData, fertcherIns, 300) //5 minutes
-
 	runFetchData(persisterIns, boltIns, influxIns, fetchRate, fertcherIns, 15) //15 seconds
+
 	runFetchData(persisterIns, boltIns, influxIns, fetchRateWithFallback, fertcherIns, 300)
 	//run server
 	server := http.NewHTTPServer(":3001", persisterIns, fertcherIns)
@@ -169,25 +168,6 @@ func fetchGeneralInfoTokens(persister persister.Persister, boltIns persister.Bol
 	if err != nil {
 		log.Println(err.Error())
 	}
-}
-
-func fetchRate7dData(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
-	data, err := fetcher.FetchRate7dData()
-	if err != nil {
-		if !persister.IsFailedToFetchTracker() {
-			return
-		}
-		persister.SetIsNewTrackerData(false)
-	} else {
-		persister.SetIsNewTrackerData(true)
-	}
-	mapToken := fetcher.GetListToken()
-	currentGeneral, err := boltIns.GetGeneralInfo(mapToken)
-	if err != nil {
-		log.Println(err.Error())
-		currentGeneral = make(map[string]*tomochain.TokenGeneralInfo)
-	}
-	persister.SaveMarketData(data, currentGeneral, mapToken)
 }
 
 func fetchRate(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
@@ -263,6 +243,7 @@ func fetchRateWithFallback(persister persister.Persister, boltIns persister.Bolt
 
 func saveRateUSD(persister persister.Persister, influxIns persister.InfluxInterface, rateUSD string) {
 	var rates []tomochain.RateUSD
+	var symbols []string
 
 	rateRatios := persister.GetRate()
 	rateFloat, err := strconv.ParseFloat(rateUSD, 64)
@@ -296,16 +277,26 @@ func saveRateUSD(persister persister.Persister, influxIns persister.InfluxInterf
 				}
 			}
 			
+			symbols = append(symbols, rateUSDItem.Symbol)
 			rates = append(rates, rateUSDItem)
 		}
 	}
 
 	influxIns.StoreRateInfo(rates)
 
-	var symbols []string
-	symbols = append(symbols, "CTT")
-	symbols = append(symbols, "TOMO")
-	influxIns.GetRate24H(symbols)
+	//save data to RAM
+	saveRateUsdToRAM(persister, influxIns, symbols)
+}
+
+func saveRateUsdToRAM(persister persister.Persister, influxIns persister.InfluxInterface, symbols []string) {
+	rates, err := influxIns.GetRate24H(symbols)
+	timeNow := time.Now().UTC().Unix()
+	if err != nil {
+		log.Println("+++++++++saveRateUsdToRAM", err)
+		return
+	}
+
+	persister.SaveRateUsd24H(rates, timeNow)
 }
 
 func makeMapRate(rates []tomochain.Rate) map[string]tomochain.Rate {

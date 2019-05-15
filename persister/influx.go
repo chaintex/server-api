@@ -99,17 +99,20 @@ func (bs *InfluxDb) GetRate24H(symbols []string) ([]tomochain.RateUSD, error) {
 
 	results, err := getQuery(bs.dbIns, cmd)
 	if err != nil {
-		return rates, nil
+		return rates, err
 	}
 
 	for _, r := range results {
-		log.Println("++++++++++++++row: ", r.Tags["symbol"])
-		row := r.Values[0][0]
+		p := fmt.Sprint(r.Values[0][1])
 
-		log.Println("++++++++++++++row: ", row.price)
+		rateUSDItem := tomochain.RateUSD{
+			Symbol:   r.Tags["symbol"],
+			PriceUsd: p,
+		}
+
+		rates = append(rates, rateUSDItem)
 	}
 
-	log.Println("+++++++++++++++++++++rates: ", rates)
 	return rates, nil
 }
 

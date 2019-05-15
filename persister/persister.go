@@ -25,11 +25,13 @@ type Persister interface {
 	GetIsNewRateUSD() bool
 	SaveRateUSD(string) error
 	SetNewRateUSD(bool)
+	SaveRateUsd24H([]tomochain.RateUSD, int64)
 
 	SaveMarketData(rates map[string]*tomochain.Rates, mapTokenInfo map[string]*tomochain.TokenGeneralInfo, tokens map[string]tomochain.Token)
 	GetRightMarketData() map[string]*tomochain.RightMarketInfo
 	// GetRightMarketDataCG() map[string]*tomochain.RightMarketInfo
 	GetLast7D(listTokens string) map[string][]float64
+	GetLast24H(listTokens string) map[string]float64
 	GetIsNewTrackerData() bool
 	SetIsNewTrackerData(isNewTrackerData bool)
 	SetIsNewMarketInfo(isNewMarketInfo bool)

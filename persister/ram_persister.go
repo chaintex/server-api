@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -67,6 +68,7 @@ type RamPersister struct {
 
 	marketInfo              map[string]*tomochain.MarketInfo
 	last7D                  map[string][]float64
+	last24H                 []tomochain.RateUSD
 	isNewTrackerData        bool
 	numRequestFailedTracker int
 
@@ -117,6 +119,7 @@ func NewRamPersister() (*RamPersister, error) {
 
 	marketInfo := map[string]*tomochain.MarketInfo{}
 	last7D := map[string][]float64{}
+	last24H := []tomochain.RateUSD{}
 	isNewTrackerData := true
 
 	rightMarketInfo := map[string]*tomochain.RightMarketInfo{}
@@ -151,6 +154,7 @@ func NewRamPersister() (*RamPersister, error) {
 		// tokenInfoCG:       tokenInfoCG,
 		marketInfo:              marketInfo,
 		last7D:                  last7D,
+		last24H:                 last24H,
 		isNewTrackerData:        isNewTrackerData,
 		numRequestFailedTracker: 0,
 		rightMarketInfo:         rightMarketInfo,
@@ -204,6 +208,17 @@ func (rPersister *RamPersister) SaveRate(rates []tomochain.Rate, timestamp int64
 	rPersister.mu.Lock()
 	defer rPersister.mu.Unlock()
 	rPersister.rates = rates
+	if timestamp != 0 {
+		rPersister.updatedAt = timestamp
+	}
+}
+
+//SaveRateUsd24H func
+func (rPersister *RamPersister) SaveRateUsd24H(last24H []tomochain.RateUSD, timestamp int64) {
+	log.Panicln("+++++++++++++++++++++++++++++SaveRateUsd24H", last24H)
+	rPersister.mu.Lock()
+	defer rPersister.mu.Unlock()
+	rPersister.last24H = last24H
 	if timestamp != 0 {
 		rPersister.updatedAt = timestamp
 	}
@@ -430,9 +445,29 @@ func (rPersister *RamPersister) GetLast7D(listTokens string) map[string][]float6
 	return result
 }
 
+// GetLast24H func return price of tokens in around 24h
+func (rPersister *RamPersister) GetLast24H(listTokens string) map[string]float64 {
+	rPersister.mu.Lock()
+	defer rPersister.mu.Unlock()
+	tokens := strings.Split(listTokens, "-")
+	log.Println("++++++++++++++++++++++++++++++++++++", tokens)
+	log.Println("++++++++++++++++++++++++++++++++++++", rPersister.last24H)
+	result := make(map[string]float64)
+	for _, symbol := range tokens {
+		for _, r := range rPersister.last24H {
+			if r.Symbol == symbol {
+				price, err := strconv.ParseFloat(r.PriceUsd, 64)
+				if err == nil {
+					result[symbol] = price
+				}
+				break
+			}
+		}
+	}
+	return result
+}
+
 func (rPersister *RamPersister) SaveMarketData(marketRate map[string]*tomochain.Rates, mapTokenInfo map[string]*tomochain.TokenGeneralInfo, tokens map[string]tomochain.Token) {
-	log.Print("+++++++++++++++++++++++++", marketRate)
-	log.Print("+++++++++++++++++++++++++", mapTokenInfo)
 	lastSevenDays := map[string][]float64{}
 	newResult := map[string]*tomochain.RightMarketInfo{}
 	if len(mapTokenInfo) == 0 {
