@@ -54,11 +54,9 @@ type TokenAPI struct {
 	UsdID       string `json:"cmc_id"`
 	TimeListing uint64 `json:"listing_time,omitempty"`
 	CGId        string `json:"cg_id"`
-	// DelistTime  uint64 `json:"delist_time,omitempty"`
 }
 
 func TokenAPIToToken(tokenAPI TokenAPI) Token {
-	// if tokenAPI.DelistTime == 0 || uint64(time.Now().UTC().Unix()) <= TIME_TO_DELETE+tokenAPI.DelistTime {
 	return Token{
 		Name:    tokenAPI.Name,
 		Symbol:  tokenAPI.Symbol,
@@ -67,8 +65,6 @@ func TokenAPIToToken(tokenAPI TokenAPI) Token {
 		CGId:    tokenAPI.CGId,
 		TokenID: tokenAPI.Symbol,
 	}
-	// }
-	// return nil
 }
 
 type QuoInfo struct {

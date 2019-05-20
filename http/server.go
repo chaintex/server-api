@@ -126,13 +126,23 @@ func (httpServer *HTTPServer) GetLast7D(c *gin.Context) {
 	)
 }
 
-//GetLast24H func
-func (httpServer *HTTPServer) GetLast24H(c *gin.Context) {
+//GetRate24H func
+func (httpServer *HTTPServer) GetRate24H(c *gin.Context) {
 	listTokens := c.Query("listToken")
-	data := httpServer.persister.GetLast24H(listTokens)
+	data := httpServer.persister.GetRate24H(listTokens)
 	c.JSON(
 		http.StatusOK,
-		gin.H{"success": true, "data": data, "status": "old"},
+		gin.H{"success": true, "data": data},
+	)
+}
+
+//GetChange24H func
+func (httpServer *HTTPServer) GetChange24H(c *gin.Context) {
+	listTokens := c.Query("listToken")
+	data := httpServer.persister.GetChange24H(listTokens)
+	c.JSON(
+		http.StatusOK,
+		gin.H{"success": true, "data": data},
 	)
 }
 
@@ -145,6 +155,15 @@ func (httpServer *HTTPServer) getCacheVersion(c *gin.Context) {
 	)
 }
 
+//GetCurrencies func
+func (httpServer *HTTPServer) GetCurrencies(c *gin.Context) {
+	data := httpServer.fetcher.GetListTokenAPI()
+	c.JSON(
+		http.StatusOK,
+		gin.H{"success": true, "data": data},
+	)
+}
+
 //Run func
 func (httpServer *HTTPServer) Run(chainTexENV string) {
 	httpServer.r.GET("/getRate", httpServer.GetRate)
@@ -153,11 +172,11 @@ func (httpServer *HTTPServer) Run(chainTexENV string) {
 	httpServer.r.GET("/getRateUSD", httpServer.GetRateUSD)
 	httpServer.r.GET("/rateUSD", httpServer.GetRateUSD)
 
-	httpServer.r.GET("/getLast7D", httpServer.GetLast7D)
-	httpServer.r.GET("/last7D", httpServer.GetLast7D)
+	httpServer.r.GET("/getRateUSD24H", httpServer.GetRate24H)
+	httpServer.r.GET("/rateUSD24H", httpServer.GetRate24H)
 
-	httpServer.r.GET("/getLast24H", httpServer.GetLast24H)
-	httpServer.r.GET("/last24H", httpServer.GetLast24H)
+	httpServer.r.GET("/getChangeUSD24H", httpServer.GetChange24H)
+	httpServer.r.GET("/changeUSD24H", httpServer.GetChange24H)
 
 	httpServer.r.GET("/getRightMarketInfo", httpServer.GetRightMarketInfo)
 	httpServer.r.GET("/marketInfo", httpServer.GetRightMarketInfo)
@@ -165,11 +184,7 @@ func (httpServer *HTTPServer) Run(chainTexENV string) {
 	httpServer.r.GET("/getRateTOMO", httpServer.GetRateTOMO)
 	httpServer.r.GET("/rateTOMO", httpServer.GetRateTOMO)
 
-	httpServer.r.GET("/cacheVersion", httpServer.getCacheVersion)
-
-	if chainTexENV != "production" {
-		httpServer.r.GET("/9d74529bc6c25401a2f984ccc9b0b2b3", httpServer.GetErrorLog)
-	}
+	httpServer.r.GET("/currencies", httpServer.GetCurrencies)
 
 	httpServer.r.Run(httpServer.host)
 }

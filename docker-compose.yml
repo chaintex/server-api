@@ -1,12 +1,22 @@
 version: "3"
 services:
-  grafana:
-    image: grafana/grafana
+  pg-admin:
+    image: dpage/pgadmin4
+    env_file:
+      - env_testnet.env
     ports:
-      - 3000:3000
+      - 3333:80
+  posgree-db:
+    build:
+      context: .
+      dockerfile: Pg.Dockerfile
+    env_file:
+      - env_testnet.env
     volumes:
-      - "./db/grafana:/var/lib/grafana"
-    # restart: always
+      - "./db/postgres/data:/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
+    restart: always
   influx-db:
     build:
       context: .

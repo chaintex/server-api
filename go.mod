@@ -14,6 +14,7 @@ require (
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/influxdata/influxdb v1.7.6
+	github.com/lib/pq v1.1.1
 	github.com/rs/cors v1.6.0 // indirect
 	github.com/tomochain/tomochain v1.4.1
 	gopkg.in/fatih/set.v0 v0.2.1 // indirect

@@ -58,25 +58,18 @@ type RamPersister struct {
 	gasPrice      *tomochain.GasPrice
 	isNewGasPrice bool
 
-	// tomoRate      string
-	// isNewEthRate bool
-
 	tokenInfo map[string]*tomochain.TokenGeneralInfo
-	// tokenInfoCG map[string]*tomochain.TokenGeneralInfo
-
-	//isNewTokenInfo bool
 
 	marketInfo              map[string]*tomochain.MarketInfo
 	last7D                  map[string][]float64
-	last24H                 []tomochain.RateUSD
+	rate24H                 []tomochain.RateUSD
+	change24H               []tomochain.RateUSD
 	isNewTrackerData        bool
 	numRequestFailedTracker int
 
 	rightMarketInfo map[string]*tomochain.RightMarketInfo
-	// rightMarketInfoCG map[string]*tomochain.RightMarketInfo
 
 	isNewMarketInfo bool
-	// isNewMarketInfoCG bool
 }
 
 func NewRamPersister() (*RamPersister, error) {
@@ -97,9 +90,6 @@ func NewRamPersister() (*RamPersister, error) {
 	rateUSD := make([]RateUSD, 0)
 	rateTOMO := "0"
 	isNewRateUsd := true
-	// rateUSDCG := make([]RateUSD, 0)
-	// rateTOMOCG := "0"
-	// isNewRateUsdCG := true
 
 	events := make([]tomochain.EventHistory, 0)
 	isNewEvent := true
@@ -110,57 +100,46 @@ func NewRamPersister() (*RamPersister, error) {
 	gasPrice := tomochain.GasPrice{}
 	isNewGasPrice := true
 
-	// tomoRate := "0"
-	// isNewEthRate := true
-
 	tokenInfo := map[string]*tomochain.TokenGeneralInfo{}
-	// tokenInfoCG := map[string]*tomochain.TokenGeneralInfo{}
-	//isNewTokenInfo := true
 
 	marketInfo := map[string]*tomochain.MarketInfo{}
 	last7D := map[string][]float64{}
-	last24H := []tomochain.RateUSD{}
+	rate24H := []tomochain.RateUSD{}
+	change24H := []tomochain.RateUSD{}
 	isNewTrackerData := true
 
 	rightMarketInfo := map[string]*tomochain.RightMarketInfo{}
-	// rightMarketInfoCG := map[string]*tomochain.RightMarketInfo{}
 
 	isNewMarketInfo := true
-	// isNewMarketInfoCG := true
 
 	persister := &RamPersister{
-		mu:                    mu,
-		timeRun:               timeRun,
-		chaintexEnabled:       chaintexEnabled,
-		isNewChainTextEnabled: isNewChainTextEnabled,
-		rates:                 rates,
-		isNewRate:             isNewRate,
-		updatedAt:             0,
-		latestBlock:           latestBlock,
-		isNewLatestBlock:      isNewLatestBlock,
-		rateUSD:               rateUSD,
-		rateTOMO:              rateTOMO,
-		isNewRateUsd:          isNewRateUsd,
-		// rateUSDCG:         rateUSDCG,
-		// rateTOMOCG:         rateTOMOCG,
-		// isNewRateUsdCG:    isNewRateUsdCG,
-		events:           events,
-		isNewEvent:       isNewEvent,
-		maxGasPrice:      maxGasPrice,
-		isNewMaxGasPrice: isNewMaxGasPrice,
-		gasPrice:         &gasPrice,
-		isNewGasPrice:    isNewGasPrice,
-		tokenInfo:        tokenInfo,
-		// tokenInfoCG:       tokenInfoCG,
+		mu:                      mu,
+		timeRun:                 timeRun,
+		chaintexEnabled:         chaintexEnabled,
+		isNewChainTextEnabled:   isNewChainTextEnabled,
+		rates:                   rates,
+		isNewRate:               isNewRate,
+		updatedAt:               0,
+		latestBlock:             latestBlock,
+		isNewLatestBlock:        isNewLatestBlock,
+		rateUSD:                 rateUSD,
+		rateTOMO:                rateTOMO,
+		isNewRateUsd:            isNewRateUsd,
+		events:                  events,
+		isNewEvent:              isNewEvent,
+		maxGasPrice:             maxGasPrice,
+		isNewMaxGasPrice:        isNewMaxGasPrice,
+		gasPrice:                &gasPrice,
+		isNewGasPrice:           isNewGasPrice,
+		tokenInfo:               tokenInfo,
 		marketInfo:              marketInfo,
 		last7D:                  last7D,
-		last24H:                 last24H,
+		rate24H:                 rate24H,
+		change24H:               change24H,
 		isNewTrackerData:        isNewTrackerData,
 		numRequestFailedTracker: 0,
 		rightMarketInfo:         rightMarketInfo,
-		// rightMarketInfoCG: rightMarketInfoCG,
-		isNewMarketInfo: isNewMarketInfo,
-		// isNewMarketInfoCG: isNewMarketInfoCG,
+		isNewMarketInfo:         isNewMarketInfo,
 	}
 	return persister, nil
 }
@@ -214,17 +193,26 @@ func (rPersister *RamPersister) SaveRate(rates []tomochain.Rate, timestamp int64
 }
 
 //SaveRateUsd24H func
-func (rPersister *RamPersister) SaveRateUsd24H(last24H []tomochain.RateUSD, timestamp int64) {
-	log.Panicln("+++++++++++++++++++++++++++++SaveRateUsd24H", last24H)
+func (rPersister *RamPersister) SaveRateUsd24H(rate24H []tomochain.RateUSD, timestamp int64) {
 	rPersister.mu.Lock()
 	defer rPersister.mu.Unlock()
-	rPersister.last24H = last24H
+	rPersister.rate24H = rate24H
 	if timestamp != 0 {
 		rPersister.updatedAt = timestamp
 	}
 }
 
-//--------------------------------------------------------
+//SaveChangeUsd24H func
+func (rPersister *RamPersister) SaveChangeUsd24H(change24H []tomochain.RateUSD, timestamp int64) {
+	rPersister.mu.Lock()
+	defer rPersister.mu.Unlock()
+	rPersister.change24H = change24H
+	if timestamp != 0 {
+		rPersister.updatedAt = timestamp
+	}
+}
+
+//SaveChainTextEnabled func
 func (rPersister *RamPersister) SaveChainTextEnabled(enabled bool) {
 	rPersister.mu.Lock()
 	defer rPersister.mu.Unlock()
@@ -280,32 +268,6 @@ func (rPersister *RamPersister) GetNewMaxGasPrice() bool {
 }
 
 //--------------------------------------------------------
-
-//--------------------------------------------------------------
-
-func (rPersister *RamPersister) SaveGasPrice(gasPrice *tomochain.GasPrice) {
-	rPersister.mu.Lock()
-	defer rPersister.mu.Unlock()
-	rPersister.gasPrice = gasPrice
-	rPersister.isNewGasPrice = true
-}
-func (rPersister *RamPersister) SetNewGasPrice(isNew bool) {
-	rPersister.mu.Lock()
-	defer rPersister.mu.Unlock()
-	rPersister.isNewGasPrice = isNew
-}
-func (rPersister *RamPersister) GetGasPrice() *tomochain.GasPrice {
-	rPersister.mu.Lock()
-	defer rPersister.mu.Unlock()
-	return rPersister.gasPrice
-}
-func (rPersister *RamPersister) GetNewGasPrice() bool {
-	rPersister.mu.Lock()
-	defer rPersister.mu.Unlock()
-	return rPersister.isNewGasPrice
-}
-
-//-----------------------------------------------------------
 
 func (rPersister *RamPersister) GetRateUSD() []RateUSD {
 	rPersister.mu.RLock()
@@ -445,16 +407,34 @@ func (rPersister *RamPersister) GetLast7D(listTokens string) map[string][]float6
 	return result
 }
 
-// GetLast24H func return price of tokens in around 24h
-func (rPersister *RamPersister) GetLast24H(listTokens string) map[string]float64 {
+// GetRate24H func return price of tokens in around 24h
+func (rPersister *RamPersister) GetRate24H(listTokens string) map[string]float64 {
 	rPersister.mu.Lock()
 	defer rPersister.mu.Unlock()
 	tokens := strings.Split(listTokens, "-")
-	log.Println("++++++++++++++++++++++++++++++++++++", tokens)
-	log.Println("++++++++++++++++++++++++++++++++++++", rPersister.last24H)
 	result := make(map[string]float64)
 	for _, symbol := range tokens {
-		for _, r := range rPersister.last24H {
+		for _, r := range rPersister.rate24H {
+			if r.Symbol == symbol {
+				price, err := strconv.ParseFloat(r.PriceUsd, 64)
+				if err == nil {
+					result[symbol] = price
+				}
+				break
+			}
+		}
+	}
+	return result
+}
+
+// GetChange24H func return price of tokens in around 24h
+func (rPersister *RamPersister) GetChange24H(listTokens string) map[string]float64 {
+	rPersister.mu.Lock()
+	defer rPersister.mu.Unlock()
+	tokens := strings.Split(listTokens, "-")
+	result := make(map[string]float64)
+	for _, symbol := range tokens {
+		for _, r := range rPersister.change24H {
 			if r.Symbol == symbol {
 				price, err := strconv.ParseFloat(r.PriceUsd, 64)
 				if err == nil {

@@ -16,7 +16,7 @@ import (
 	"github.com/chaintex/server-api/tomochain"
 )
 
-type fetcherFunc func(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher)
+type fetcherFunc func(persister persister.Persister, boltIns persister.BoltInterface, postgresIns persister.PostgresInterface, fetcher *fetcher.Fetcher)
 
 func enableLogToFile() (*os.File, error) {
 	const logFileName = "log/error.log"
@@ -54,9 +54,10 @@ func main() {
 	if err != nil {
 		log.Println("cannot init db: ", err.Error())
 	}
-	influxIns, err := persister.NewInfluxDb()
+
+	postgresIns, err := persister.NewPostgresDb()
 	if err != nil {
-		log.Println("cannot init influx db: ", err.Error())
+		log.Println("cannot init postgres db: ", err.Error())
 	}
 
 	fertcherIns, err := fetcher.NewFetcher(chainTexENV)
@@ -115,30 +116,30 @@ func main() {
 	}
 	intervalFetchGeneralInfoTokens := time.Duration((tokenNum * 7) + bonusTimeWait)
 
-	runFetchData(persisterIns, boltIns, influxIns, fetchRateUSD, fertcherIns, 300) //5 minutes
+	runFetchData(persisterIns, boltIns, postgresIns, fetchRateUSD, fertcherIns, 300) //5 minutes
 
-	runFetchData(persisterIns, boltIns, influxIns, fetchGeneralInfoTokens, fertcherIns, intervalFetchGeneralInfoTokens)
+	runFetchData(persisterIns, boltIns, postgresIns, fetchGeneralInfoTokens, fertcherIns, intervalFetchGeneralInfoTokens)
 
-	runFetchData(persisterIns, boltIns, influxIns, fetchRate, fertcherIns, 15) //15 seconds
+	runFetchData(persisterIns, boltIns, postgresIns, fetchRate, fertcherIns, 15) //15 seconds
 
-	runFetchData(persisterIns, boltIns, influxIns, fetchRateWithFallback, fertcherIns, 300)
+	runFetchData(persisterIns, boltIns, postgresIns, fetchRateWithFallback, fertcherIns, 300)
 	//run server
 	server := http.NewHTTPServer(":3001", persisterIns, fertcherIns)
 	server.Run(chainTexENV)
 
 }
 
-func runFetchData(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fn fetcherFunc, fertcherIns *fetcher.Fetcher, interval time.Duration) {
+func runFetchData(persister persister.Persister, boltIns persister.BoltInterface, postgresIns persister.PostgresInterface, fn fetcherFunc, fertcherIns *fetcher.Fetcher, interval time.Duration) {
 	ticker := time.NewTicker(interval * time.Second)
 	go func() {
 		for {
-			fn(persister, boltIns, influxIns, fertcherIns)
+			fn(persister, boltIns, postgresIns, fertcherIns)
 			<-ticker.C
 		}
 	}()
 }
 
-func fetchRateUSD(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
+func fetchRateUSD(persister persister.Persister, boltIns persister.BoltInterface, postgresIns persister.PostgresInterface, fetcher *fetcher.Fetcher) {
 	rateUSD, err := fetcher.GetRateUsdTomo()
 	if err != nil {
 		log.Print(err)
@@ -158,10 +159,10 @@ func fetchRateUSD(persister persister.Persister, boltIns persister.BoltInterface
 		return
 	}
 
-	saveRateUSD(persister, influxIns, rateUSD)
+	saveRateUSD(persister, postgresIns, rateUSD)
 }
 
-func fetchGeneralInfoTokens(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
+func fetchGeneralInfoTokens(persister persister.Persister, boltIns persister.BoltInterface, postgresIns persister.PostgresInterface, fetcher *fetcher.Fetcher) {
 	generalInfo := fetcher.GetGeneralInfoTokens()
 	persister.SaveGeneralInfoTokens(generalInfo)
 	err := boltIns.StoreGeneralInfo(generalInfo)
@@ -170,9 +171,8 @@ func fetchGeneralInfoTokens(persister persister.Persister, boltIns persister.Bol
 	}
 }
 
-func fetchRate(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
+func fetchRate(persister persister.Persister, boltIns persister.BoltInterface, postgresIns persister.PostgresInterface, fetcher *fetcher.Fetcher) {
 	timeNow := time.Now().UTC().Unix()
-	log.Println("+++++++++++++++++++++start****************************", timeNow)
 	var result []tomochain.Rate
 	currentRate := persister.GetRate()
 	tokenPriority := fetcher.GetListTokenPriority()
@@ -204,7 +204,7 @@ func fetchRate(persister persister.Persister, boltIns persister.BoltInterface, i
 	persister.SetIsNewRate(true)
 }
 
-func fetchRateWithFallback(persister persister.Persister, boltIns persister.BoltInterface, influxIns persister.InfluxInterface, fetcher *fetcher.Fetcher) {
+func fetchRateWithFallback(persister persister.Persister, boltIns persister.BoltInterface, postgresIns persister.PostgresInterface, fetcher *fetcher.Fetcher) {
 	var result []tomochain.Rate
 	currentRate := persister.GetRate()
 	listToken := fetcher.GetListToken()
@@ -241,7 +241,7 @@ func fetchRateWithFallback(persister persister.Persister, boltIns persister.Bolt
 	persister.SaveRate(result, 0)
 }
 
-func saveRateUSD(persister persister.Persister, influxIns persister.InfluxInterface, rateUSD string) {
+func saveRateUSD(persister persister.Persister, postgresIns persister.PostgresInterface, rateUSD string) {
 	var rates []tomochain.RateUSD
 	var symbols []string
 
@@ -282,14 +282,16 @@ func saveRateUSD(persister persister.Persister, influxIns persister.InfluxInterf
 		}
 	}
 
-	influxIns.StoreRateInfo(rates)
+
+	postgresIns.StoreRateInfo(rates)
 
 	//save data to RAM
-	saveRateUsdToRAM(persister, influxIns, symbols)
+	saveRateUsdToRAM(persister, postgresIns, symbols)
+	saveChangeUsdToRAM(persister, postgresIns, symbols)
 }
 
-func saveRateUsdToRAM(persister persister.Persister, influxIns persister.InfluxInterface, symbols []string) {
-	rates, err := influxIns.GetRate24H(symbols)
+func saveRateUsdToRAM(persister persister.Persister, postgresIns persister.PostgresInterface, symbols []string) {
+	rates, err := postgresIns.GetRate24H(symbols)
 	timeNow := time.Now().UTC().Unix()
 	if err != nil {
 		log.Println("+++++++++saveRateUsdToRAM", err)
@@ -297,6 +299,17 @@ func saveRateUsdToRAM(persister persister.Persister, influxIns persister.InfluxI
 	}
 
 	persister.SaveRateUsd24H(rates, timeNow)
+}
+
+func saveChangeUsdToRAM(persister persister.Persister, postgresIns persister.PostgresInterface, symbols []string) {
+	rates, err := postgresIns.GetChange24H(symbols)
+	timeNow := time.Now().UTC().Unix()
+	if err != nil {
+		log.Println("+++++++++saveChangeUsdToRAM", err)
+		return
+	}
+
+	persister.SaveChangeUsd24H(rates, timeNow)
 }
 
 func makeMapRate(rates []tomochain.Rate) map[string]tomochain.Rate {
@@ -308,6 +321,11 @@ func makeMapRate(rates []tomochain.Rate) map[string]tomochain.Rate {
 }
 
 func getPriceToken(priceTomoUsd float64, ratioToken float64) string {
+	if ratioToken <= 0 {
+		return "0"
+	}
+
+	log.Println(priceTomoUsd, ratioToken)
 	i, e := big.NewInt(10), big.NewInt(18)
 	i.Exp(i, e, nil)
 	weight := new(big.Float).SetInt(i)

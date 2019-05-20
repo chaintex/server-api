@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/big"
 
 	"github.com/chaintex/server-api/common"
 	fCommon "github.com/chaintex/server-api/fetcher/fetcher-common"
-	"github.com/chaintex/server-api/tomochain"
 )
 
 const (
@@ -18,89 +16,13 @@ const (
 )
 
 type HTTPFetcher struct {
-	tradingAPIEndpoint string
-	gasStationEndPoint string
-	apiEndpoint        string
+	apiEndpoint string
 }
 
-func NewHTTPFetcher(tradingAPIEndpoint, gasStationEndpoint, apiEndpoint string) *HTTPFetcher {
+func NewHTTPFetcher(apiEndpoint string) *HTTPFetcher {
 	return &HTTPFetcher{
-		tradingAPIEndpoint: tradingAPIEndpoint,
-		gasStationEndPoint: gasStationEndpoint,
-		apiEndpoint:        apiEndpoint,
+		apiEndpoint: apiEndpoint,
 	}
-}
-
-func (httpFetcher *HTTPFetcher) GetListToken() ([]tomochain.Token, error) {
-	b, err := fCommon.HTTPCall(httpFetcher.tradingAPIEndpoint)
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	var result tomochain.TokenConfig
-	err = json.Unmarshal(b, &result)
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	if result.Success == false {
-		err = errors.New("Cannot get list token")
-		return nil, err
-	}
-	data := result.Data
-	if len(data) == 0 {
-		err = errors.New("list token from api is empty")
-		return nil, err
-	}
-
-	return data, nil
-}
-
-type GasStation struct {
-	Fast     float64 `json:"fast"`
-	Standard float64 `json:"average"`
-	Low      float64 `json:"safeLow"`
-}
-
-func (httpFetcher *HTTPFetcher) GetGasPrice() (*tomochain.GasPrice, error) {
-	b, err := fCommon.HTTPCall(httpFetcher.gasStationEndPoint)
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	var gasPrice GasStation
-	err = json.Unmarshal(b, &gasPrice)
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-
-	fast := big.NewFloat(gasPrice.Fast / 10)
-	standard := big.NewFloat((gasPrice.Fast + gasPrice.Standard) / 20)
-	low := big.NewFloat(gasPrice.Low / 10)
-	defaultGas := standard
-
-	return &tomochain.GasPrice{
-		fast.String(), standard.String(), low.String(), defaultGas.String(),
-	}, nil
-}
-
-// get data from tracker.chaintex
-
-func (httpFetcher *HTTPFetcher) GetRate7dData() (map[string]*tomochain.Rates, error) {
-	trackerAPI := httpFetcher.apiEndpoint + "/rates7d"
-	b, err := fCommon.HTTPCall(trackerAPI)
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	trackerData := map[string]*tomochain.Rates{}
-	err = json.Unmarshal(b, &trackerData)
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	return trackerData, nil
 }
 
 func (httpFetcher *HTTPFetcher) GetUserInfo(url string) (*common.UserInfo, error) {

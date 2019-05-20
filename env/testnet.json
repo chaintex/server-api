@@ -12,15 +12,13 @@
   ],
   "api_usd":"https://api.coinmarketcap.com",
   "coin_market": ["cmc", "coingecko"],
-  "network": "0xf6e6ffd3f34b759e30a5357ce749d204aaf5446e",
+  "network": "0x00252a171ee0ea54bfcf326c8cf86fd970205df0",
   "trade_topic":"0x314089036943f0e5ddddd6939d359902c01dac1be72c517cc8342fca023ad71e",
   "endpoint": "wss://testnet.tomochain.com/ws",
   "averageBlockTime": 15000,
-  "gasstation_endpoint": "https://ethgasstation.info/json/ethgasAPI.json",
   "api_endpoint":"https://api.coinmarketcap.com",
-  "config_endpoint": "http://192.168.2.40:3002/currencies",
 
-  "can_delete": ["BBO", "COFI", "BITX", "MOC", "MAS"],
+  "can_delete": [],
 
   "tokens": [
     {
@@ -30,6 +28,13 @@
       "decimals": 18,
       "cmc_id": "1027",
       "cg_id": "tomochain"
+    },
+    {
+      "symbol": "CONST",
+      "name": "Constant Stablecoin",
+      "address": "0x63860d4ece7b0bd86f95694fc15309961a0a317e",
+      "decimals": 2,
+      "cg_id": "const"
     },
     {
       "name": "ChainTEX Token",
@@ -45,6 +50,13 @@
       "decimals": 18,
       "cmc_id": "1982",
       "cg_id": "tiim"
+    },
+    {
+      "name": "Kyber Network Crystal",
+      "symbol": "KNC",
+      "address": "0x26d22feb6419d08cc38a10812a231926fe427491",
+      "decimals": 16,
+      "cg_id": "knc"
     }
   ]
 }
