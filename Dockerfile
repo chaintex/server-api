@@ -14,7 +14,7 @@ RUN mkdir -p $GOPATH/src/github.com/chaintex/server-api
 ADD . $GOPATH/src/github.com/chaintex/server-api
 
 # should be able to build now
-WORKDIR $GOPATH/src/github.com/chaintex/server-api 
+WORKDIR $GOPATH/src/github.com/chaintex/server-api
 RUN go build -o server .
 CMD ["/go/src/github.com/chaintex/server-api/server"]
 
