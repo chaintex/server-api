@@ -12,11 +12,11 @@ services:
       - "5432:5432"
     restart: always
   cached:
-    image: marknguyen/cached
+    image: marknguyen85/cached
     env_file:
       - env_testnet.env
     ports:
-      - "3001:3001"
+      - "80:3001"
     volumes:
       - "./db:/go/src/github.com/chaintex/server-api/persister/db"
       - "./log:/go/src/github.com/chaintex/server-api/log"
