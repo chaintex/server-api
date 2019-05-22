@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 readonly src_dir=/tmp/reserve-stats-abi-gen/src/github.com/ethereum
 
 go mod vendor
