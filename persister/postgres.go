@@ -66,42 +66,43 @@ func (bs *PostgresDb) StoreRateInfo(mapInfo []tomochain.RateUSD) error {
 // GetChange24H store market info
 func (bs *PostgresDb) GetChange24H(symbols []string) ([]tomochain.RateUSD, error) {
 	var rates []tomochain.RateUSD
-	wSymbol := strings.Join(symbols, "','")
-	sqlStatement := fmt.Sprintf("SELECT symbol, AVG(price) AS price FROM %s WHERE symbol IN ('%s') AND price > 0 GROUP BY symbol", tbname, wSymbol)
 
 	dbIns, err := sql.Open("postgres", bs.psqlInfo)
 	if err != nil {
 		panic(err)
 	}
 	defer dbIns.Close()
-
-	rows, err := dbIns.Query(sqlStatement)
-	if err != nil {
-		return rates, err
-	}
-	defer rows.Close()
-
-	if err != nil {
-		return rates, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var symbol string
-		var price float64
-		err = rows.Scan(&symbol, &price)
+	for _, symbol := range symbols {
+		sqlStatement := fmt.Sprintf("select COALESCE((select price from %s where symbol = '%s' AND price > 0 and time_at <= now() order by time_at desc limit 1), 0) - COALESCE((select price from %s where symbol = '%s' AND price > 0 and time_at <= (NOW() - INTERVAL '24' HOUR) order by time_at desc limit 1), 0) as change", tbname, symbol, tbname, symbol)
+		rows, err := dbIns.Query(sqlStatement)
 		if err != nil {
-			// handle this error
-			panic(err)
+			return rates, err
 		}
-		rateUSDItem := tomochain.RateUSD{
-			Symbol:   symbol,
-			PriceUsd: fmt.Sprint(price),
+		defer rows.Close()
+
+		if err != nil {
+			return rates, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var change float64
+			err = rows.Scan(&change)
+			if err != nil {
+				// handle this error
+				panic(err)
+			}
+
+			rateUSDItem := tomochain.RateUSD{
+				Symbol:   symbol,
+				PriceUsd: fmt.Sprint(change),
+			}
+
+			rates = append(rates, rateUSDItem)
 		}
 
-		rates = append(rates, rateUSDItem)
+		err = rows.Err()
 	}
 
-	err = rows.Err()
 	return rates, err
 }
 
