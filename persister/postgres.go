@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	host   = "posgree-db"
-	port   = 5432
+	host   = "postgres-db"
+	port   = "5432"
 	db     = "chaintex_db"
 	usr    = "chaintext"
 	pwd    = "chaintext"
@@ -29,7 +29,7 @@ type PostgresDb struct {
 
 // NewPostgresDb make db instance
 func NewPostgresDb() (*PostgresDb, error) {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, usr, pwd, db)
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, usr, pwd, db)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
