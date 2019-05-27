@@ -142,7 +142,7 @@ func runFetchData(persister persister.Persister, boltIns persister.BoltInterface
 func fetchRateUSD(persister persister.Persister, boltIns persister.BoltInterface, postgresIns persister.PostgresInterface, fetcher *fetcher.Fetcher) {
 	rateUSD, err := fetcher.GetRateUsdTomo()
 	if err != nil {
-		log.Print(err)
+		log.Println("++++++++++++GetRateUsdTomo got error: ", err)
 		persister.SetNewRateUSD(false)
 		return
 	}
@@ -260,6 +260,7 @@ func saveRateUSD(persister persister.Persister, postgresIns persister.PostgresIn
 				rateUSDItem = tomochain.RateUSD{
 					Symbol:  	r.Dest,
 					PriceUsd:   rateUSD,
+					RateWithTomo: "1",
 				}
 			} else {
 				var rateRatio float64
@@ -268,12 +269,13 @@ func saveRateUSD(persister persister.Persister, postgresIns persister.PostgresIn
 					log.Print(err)
 					continue
 				}
-	
-				priceUsd := getPriceToken(rateFloat, rateRatio)
+				
+				priceUsd, ratioWithTomo := getPriceToken(rateFloat, rateRatio)
 				
 				rateUSDItem = tomochain.RateUSD{
 					Symbol:  	r.Dest,
 					PriceUsd:   priceUsd,
+					RateWithTomo: ratioWithTomo,
 				}
 			}
 			
@@ -288,13 +290,14 @@ func saveRateUSD(persister persister.Persister, postgresIns persister.PostgresIn
 	//save data to RAM
 	saveRateUsdToRAM(persister, postgresIns, symbols)
 	saveChangeUsdToRAM(persister, postgresIns, symbols)
+	saveChangeRateToRAM(persister, postgresIns, symbols)
 }
 
 func saveRateUsdToRAM(persister persister.Persister, postgresIns persister.PostgresInterface, symbols []string) {
 	rates, err := postgresIns.GetRate24H(symbols)
 	timeNow := time.Now().UTC().Unix()
 	if err != nil {
-		log.Println("+++++++++saveRateUsdToRAM", err)
+		log.Println("+++++++++saveRateUsdToRAM just got error: ", err)
 		return
 	}
 
@@ -302,14 +305,25 @@ func saveRateUsdToRAM(persister persister.Persister, postgresIns persister.Postg
 }
 
 func saveChangeUsdToRAM(persister persister.Persister, postgresIns persister.PostgresInterface, symbols []string) {
-	rates, err := postgresIns.GetChange24H(symbols)
+	rates, err := postgresIns.GetChange24H("usd", symbols)
 	timeNow := time.Now().UTC().Unix()
 	if err != nil {
-		log.Println("+++++++++saveChangeUsdToRAM", err)
+		log.Println("+++++++++saveChangeUsdToRAM just got error: ", err)
 		return
 	}
 
 	persister.SaveChangeUsd24H(rates, timeNow)
+}
+
+func saveChangeRateToRAM(persister persister.Persister, postgresIns persister.PostgresInterface, symbols []string) {
+	rates, err := postgresIns.GetChange24H("rate", symbols)
+	timeNow := time.Now().UTC().Unix()
+	if err != nil {
+		log.Println("+++++++++saveChangeRateToRAM just got error: ", err)
+		return
+	}
+
+	persister.SaveChangeRate24H(rates, timeNow)
 }
 
 func makeMapRate(rates []tomochain.Rate) map[string]tomochain.Rate {
@@ -320,22 +334,21 @@ func makeMapRate(rates []tomochain.Rate) map[string]tomochain.Rate {
 	return mapRate
 }
 
-func getPriceToken(priceTomoUsd float64, ratioToken float64) string {
+func getPriceToken(priceTomoUsd float64, ratioToken float64) (string, string) {
 	if ratioToken <= 0 {
-		return "0"
+		return "0", "0"
 	}
 
-	log.Println(priceTomoUsd, ratioToken)
 	i, e := big.NewInt(10), big.NewInt(18)
 	i.Exp(i, e, nil)
 	weight := new(big.Float).SetInt(i)
 
 	ratioTokenFloat := big.NewFloat(ratioToken)
 	priceUSDFloat := big.NewFloat(priceTomoUsd)
-
 	ratio := big.NewFloat(0).Quo(ratioTokenFloat, weight)
 
 	priceOfToken := big.NewFloat(0).Quo(priceUSDFloat, ratio)
+	ratioWithTomo := big.NewFloat(0).Quo(priceOfToken, priceUSDFloat)
 
-	return priceOfToken.String()
+	return priceOfToken.String(), ratioWithTomo.String()
 }

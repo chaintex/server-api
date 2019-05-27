@@ -138,8 +138,9 @@ func (httpServer *HTTPServer) GetRate24H(c *gin.Context) {
 
 //GetChange24H func
 func (httpServer *HTTPServer) GetChange24H(c *gin.Context) {
+	t := c.Query("t")
 	listTokens := c.Query("listToken")
-	data := httpServer.persister.GetChange24H(listTokens)
+	data := httpServer.persister.GetChange24H(t, listTokens)
 	c.JSON(
 		http.StatusOK,
 		gin.H{"success": true, "data": data},

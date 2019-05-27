@@ -64,6 +64,7 @@ type RamPersister struct {
 	last7D                  map[string][]float64
 	rate24H                 []tomochain.RateUSD
 	change24H               []tomochain.RateUSD
+	changeRate24H           []tomochain.RateUSD
 	isNewTrackerData        bool
 	numRequestFailedTracker int
 
@@ -106,6 +107,7 @@ func NewRamPersister() (*RamPersister, error) {
 	last7D := map[string][]float64{}
 	rate24H := []tomochain.RateUSD{}
 	change24H := []tomochain.RateUSD{}
+	changeRate24H := []tomochain.RateUSD{}
 	isNewTrackerData := true
 
 	rightMarketInfo := map[string]*tomochain.RightMarketInfo{}
@@ -136,6 +138,7 @@ func NewRamPersister() (*RamPersister, error) {
 		last7D:                  last7D,
 		rate24H:                 rate24H,
 		change24H:               change24H,
+		changeRate24H:           changeRate24H,
 		isNewTrackerData:        isNewTrackerData,
 		numRequestFailedTracker: 0,
 		rightMarketInfo:         rightMarketInfo,
@@ -207,6 +210,16 @@ func (rPersister *RamPersister) SaveChangeUsd24H(change24H []tomochain.RateUSD, 
 	rPersister.mu.Lock()
 	defer rPersister.mu.Unlock()
 	rPersister.change24H = change24H
+	if timestamp != 0 {
+		rPersister.updatedAt = timestamp
+	}
+}
+
+//SaveChangeRate24H func
+func (rPersister *RamPersister) SaveChangeRate24H(change24H []tomochain.RateUSD, timestamp int64) {
+	rPersister.mu.Lock()
+	defer rPersister.mu.Unlock()
+	rPersister.changeRate24H = change24H
 	if timestamp != 0 {
 		rPersister.updatedAt = timestamp
 	}
@@ -428,13 +441,21 @@ func (rPersister *RamPersister) GetRate24H(listTokens string) map[string]float64
 }
 
 // GetChange24H func return price of tokens in around 24h
-func (rPersister *RamPersister) GetChange24H(listTokens string) map[string]float64 {
+func (rPersister *RamPersister) GetChange24H(typ string, listTokens string) map[string]float64 {
 	rPersister.mu.Lock()
 	defer rPersister.mu.Unlock()
 	tokens := strings.Split(listTokens, "-")
+	var change24H []tomochain.RateUSD
+
+	if typ == "usd" {
+		change24H = rPersister.change24H
+	} else {
+		change24H = rPersister.changeRate24H
+	}
+
 	result := make(map[string]float64)
 	for _, symbol := range tokens {
-		for _, r := range rPersister.change24H {
+		for _, r := range change24H {
 			if r.Symbol == symbol {
 				price, err := strconv.ParseFloat(r.PriceUsd, 64)
 				if err == nil {

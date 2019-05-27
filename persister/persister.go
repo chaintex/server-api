@@ -27,13 +27,14 @@ type Persister interface {
 	SetNewRateUSD(bool)
 	SaveRateUsd24H([]tomochain.RateUSD, int64)
 	SaveChangeUsd24H([]tomochain.RateUSD, int64)
+	SaveChangeRate24H([]tomochain.RateUSD, int64)
 
 	SaveMarketData(rates map[string]*tomochain.Rates, mapTokenInfo map[string]*tomochain.TokenGeneralInfo, tokens map[string]tomochain.Token)
 	GetRightMarketData() map[string]*tomochain.RightMarketInfo
 	// GetRightMarketDataCG() map[string]*tomochain.RightMarketInfo
 	GetLast7D(listTokens string) map[string][]float64
 	GetRate24H(listTokens string) map[string]float64
-	GetChange24H(listTokens string) map[string]float64
+	GetChange24H(typ string, listTokens string) map[string]float64
 	GetIsNewTrackerData() bool
 	SetIsNewTrackerData(isNewTrackerData bool)
 	SetIsNewMarketInfo(isNewMarketInfo bool)

@@ -17,8 +17,8 @@ const (
 	host   = "postgres-db"
 	port   = "5432"
 	db     = "chaintex_db"
-	usr    = "chaintext"
-	pwd    = "chaintext"
+	usr    = "chaintex"
+	pwd    = "chaintex"
 	tbname = "price_token"
 )
 
@@ -45,7 +45,7 @@ func NewPostgresDb() (*PostgresDb, error) {
 // StoreRateInfo store market info
 func (bs *PostgresDb) StoreRateInfo(mapInfo []tomochain.RateUSD) error {
 	timeNow := time.Now().UTC()
-	cmd := fmt.Sprintf("INSERT INTO %s (time_at, symbol, price) VALUES ($1, $2, $3)", tbname)
+	cmd := fmt.Sprintf("INSERT INTO %s (time_at, symbol, price, rate_with_tomo) VALUES ($1, $2, $3, $4)", tbname)
 	dbIns, err := sql.Open("postgres", bs.psqlInfo)
 	if err != nil {
 		panic(err)
@@ -57,15 +57,30 @@ func (bs *PostgresDb) StoreRateInfo(mapInfo []tomochain.RateUSD) error {
 		if ex != nil {
 			continue
 		}
-		insertData(dbIns, cmd, timeNow, r.Symbol, price)
+
+		rateWithTomo, ex2 := strconv.ParseFloat(r.RateWithTomo, 64)
+
+		if ex2 != nil {
+			continue
+		}
+
+		insertData(dbIns, cmd, timeNow, r.Symbol, price, rateWithTomo)
 	}
 
 	return nil
 }
 
 // GetChange24H store market info
-func (bs *PostgresDb) GetChange24H(symbols []string) ([]tomochain.RateUSD, error) {
+func (bs *PostgresDb) GetChange24H(typ string, symbols []string) ([]tomochain.RateUSD, error) {
 	var rates []tomochain.RateUSD
+
+	col := "price"
+
+	if typ == "usd" {
+		col = "price"
+	} else {
+		col = "rate_with_tomo"
+	}
 
 	dbIns, err := sql.Open("postgres", bs.psqlInfo)
 	if err != nil {
@@ -73,7 +88,7 @@ func (bs *PostgresDb) GetChange24H(symbols []string) ([]tomochain.RateUSD, error
 	}
 	defer dbIns.Close()
 	for _, symbol := range symbols {
-		sqlStatement := fmt.Sprintf("select COALESCE((select price from %s where symbol = '%s' AND price > 0 and time_at <= now() order by time_at desc limit 1), 0) - COALESCE((select price from %s where symbol = '%s' AND price > 0 and time_at <= (NOW() - INTERVAL '24' HOUR) order by time_at desc limit 1), 0) as change", tbname, symbol, tbname, symbol)
+		sqlStatement := "select COALESCE((select " + col + " from " + tbname + " where symbol = '" + symbol + "' AND " + col + " > 0 and time_at <= now() order by time_at desc limit 1), 0) - COALESCE((select " + col + " from " + tbname + " where symbol = '" + symbol + "' AND " + col + " > 0 and time_at <= (NOW() - INTERVAL '24' HOUR) order by time_at desc limit 1), 0) as change"
 		rows, err := dbIns.Query(sqlStatement)
 		if err != nil {
 			return rates, err

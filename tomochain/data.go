@@ -118,18 +118,16 @@ type RateUSDCG struct {
 	} `json:"market_data"`
 }
 
+//RateUSD struct
 type RateUSD struct {
-	Symbol   string `json:"symbol"`
-	PriceUsd string `json:"price_usd"`
+	Symbol       string `json:"symbol"`
+	PriceUsd     string `json:"price_usd"`
+	RateWithTomo string `json:"rate_with_tomo"`
 }
 
 type ResultRpc struct {
 	Result string `json:"result"`
 }
-
-// type TokenInfoData struct {
-// 	Data TokenGeneralInfo `data`
-// }
 
 type CandleTicker struct {
 	SellPrice string `json:"sell_price"`
