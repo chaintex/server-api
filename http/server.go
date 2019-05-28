@@ -167,22 +167,16 @@ func (httpServer *HTTPServer) GetCurrencies(c *gin.Context) {
 
 //Run func
 func (httpServer *HTTPServer) Run(chainTexENV string) {
-	httpServer.r.GET("/getRate", httpServer.GetRate)
 	httpServer.r.GET("/rate", httpServer.GetRate)
 
-	httpServer.r.GET("/getRateUSD", httpServer.GetRateUSD)
 	httpServer.r.GET("/rateUSD", httpServer.GetRateUSD)
 
-	httpServer.r.GET("/getRateUSD24H", httpServer.GetRate24H)
 	httpServer.r.GET("/rateUSD24H", httpServer.GetRate24H)
 
-	httpServer.r.GET("/getChangeUSD24H", httpServer.GetChange24H)
 	httpServer.r.GET("/changeUSD24H", httpServer.GetChange24H)
 
-	httpServer.r.GET("/getRightMarketInfo", httpServer.GetRightMarketInfo)
 	httpServer.r.GET("/marketInfo", httpServer.GetRightMarketInfo)
 
-	httpServer.r.GET("/getRateTOMO", httpServer.GetRateTOMO)
 	httpServer.r.GET("/rateTOMO", httpServer.GetRateTOMO)
 
 	httpServer.r.GET("/currencies", httpServer.GetCurrencies)
