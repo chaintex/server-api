@@ -181,6 +181,8 @@ func (httpServer *HTTPServer) Run(chainTexENV string) {
 
 	httpServer.r.GET("/currencies", httpServer.GetCurrencies)
 
+	httpServer.r.GET("/last7D", httpServer.GetLast7D)
+
 	httpServer.r.Run(httpServer.host)
 }
 
